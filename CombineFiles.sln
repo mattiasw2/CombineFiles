@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CombineFiles", "CombineFile
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestCombineFIles", "TestCombineFIles\TestCombineFIles.csproj", "{8D653CA4-D739-4CDA-B996-35A420DF2335}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lib", "Lib\Lib.csproj", "{F3F93467-5842-4B40-9FEE-15D46F7CEF74}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{8D653CA4-D739-4CDA-B996-35A420DF2335}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8D653CA4-D739-4CDA-B996-35A420DF2335}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8D653CA4-D739-4CDA-B996-35A420DF2335}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F3F93467-5842-4B40-9FEE-15D46F7CEF74}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F3F93467-5842-4B40-9FEE-15D46F7CEF74}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F3F93467-5842-4B40-9FEE-15D46F7CEF74}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F3F93467-5842-4B40-9FEE-15D46F7CEF74}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

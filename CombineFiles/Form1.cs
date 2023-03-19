@@ -1,4 +1,5 @@
-﻿using System;
+﻿using CombineFiles;
+using System;
 using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -126,10 +127,13 @@ namespace FileCombiner
             }
         }
 
+
+
         private void CombineInto(string targetFile) {
             using (var output = new FileStream(targetFile, FileMode.Create)) {
                 foreach (TreeNode node in treeViewFiles.Nodes) {
-                    CombineSelectedFilesRecursive(node, output);
+                    FileSystemNode fileSystemNode = Utils.MapTreeNodeToFileSystemNode(node);
+                    Core.CombineSelectedFilesRecursive(fileSystemNode, output, new FileSystem());
                 }
             }
 
@@ -137,38 +141,6 @@ namespace FileCombiner
             buttonCombineAgain.Enabled = true;
 
             MessageBox.Show("Files combined successfully!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
-        }
-
-
-        private void CombineSelectedFilesRecursive(TreeNode node, FileStream output)
-        {
-            if (node.Checked)
-            {
-                string filePath = node.FullPath;
-                if (!Directory.Exists(filePath)) {
-
-                    byte[] commentBytes = Encoding.UTF8.GetBytes($"// Combined from: {filePath}{Environment.NewLine}");
-                    output.Write(commentBytes, 0, commentBytes.Length);
-
-                    byte[] buffer = new byte[4096];
-                    using (FileStream input = File.OpenRead(filePath))
-                    {
-                        int bytesRead;
-                        while ((bytesRead = input.Read(buffer, 0, buffer.Length)) > 0)
-                        {
-                            output.Write(buffer, 0, bytesRead);
-                        }
-                    }
-
-                    byte[] newLineBytes = Encoding.UTF8.GetBytes(Environment.NewLine);
-                    output.Write(newLineBytes, 0, newLineBytes.Length);
-                }
-            }
-
-            foreach (TreeNode childNode in node.Nodes)
-            {
-                CombineSelectedFilesRecursive(childNode, output);
-            }
         }
 
 

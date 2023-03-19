@@ -1,4 +1,5 @@
-# CombineFiles
+# CombineFiles - Let ChatGpt code for you!
+
 Experiment with coding with chatgpt 4
 
 The solution is build by chatgpt4, where I just told it roughly what to do. These are my commands

@@ -5,6 +5,8 @@ VisualStudioVersion = 17.5.33502.453
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CombineFiles", "CombineFiles\CombineFiles.csproj", "{36734591-704B-422C-B7D8-F0A114714ECF}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestCombineFIles", "TestCombineFIles\TestCombineFIles.csproj", "{8D653CA4-D739-4CDA-B996-35A420DF2335}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{36734591-704B-422C-B7D8-F0A114714ECF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{36734591-704B-422C-B7D8-F0A114714ECF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{36734591-704B-422C-B7D8-F0A114714ECF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8D653CA4-D739-4CDA-B996-35A420DF2335}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8D653CA4-D739-4CDA-B996-35A420DF2335}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8D653CA4-D739-4CDA-B996-35A420DF2335}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8D653CA4-D739-4CDA-B996-35A420DF2335}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

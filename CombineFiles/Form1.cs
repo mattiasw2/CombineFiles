@@ -145,22 +145,24 @@ namespace FileCombiner
             if (node.Checked)
             {
                 string filePath = node.FullPath;
+                if (!Directory.Exists(filePath)) {
 
-                byte[] commentBytes = Encoding.UTF8.GetBytes($"// Combined from: {filePath}{Environment.NewLine}");
-                output.Write(commentBytes, 0, commentBytes.Length);
+                    byte[] commentBytes = Encoding.UTF8.GetBytes($"// Combined from: {filePath}{Environment.NewLine}");
+                    output.Write(commentBytes, 0, commentBytes.Length);
 
-                byte[] buffer = new byte[4096];
-                using (FileStream input = File.OpenRead(filePath))
-                {
-                    int bytesRead;
-                    while ((bytesRead = input.Read(buffer, 0, buffer.Length)) > 0)
+                    byte[] buffer = new byte[4096];
+                    using (FileStream input = File.OpenRead(filePath))
                     {
-                        output.Write(buffer, 0, bytesRead);
+                        int bytesRead;
+                        while ((bytesRead = input.Read(buffer, 0, buffer.Length)) > 0)
+                        {
+                            output.Write(buffer, 0, bytesRead);
+                        }
                     }
-                }
 
-                byte[] newLineBytes = Encoding.UTF8.GetBytes(Environment.NewLine);
-                output.Write(newLineBytes, 0, newLineBytes.Length);
+                    byte[] newLineBytes = Encoding.UTF8.GetBytes(Environment.NewLine);
+                    output.Write(newLineBytes, 0, newLineBytes.Length);
+                }
             }
 
             foreach (TreeNode childNode in node.Nodes)

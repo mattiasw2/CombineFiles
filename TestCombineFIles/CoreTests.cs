@@ -2,6 +2,8 @@
 
 namespace TestCombineFIles
 {
+    // Tests within the same test class will not run in parallel against each other. 
+    // So I do not need to bother about all files below being called File1.cs, File2.cs, etc.
     public class CoreTests : IDisposable
     {
         private readonly string tempDirectory;

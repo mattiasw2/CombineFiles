@@ -1,9 +1,9 @@
 ﻿using System;
 using System.IO;
 using System.Windows.Forms;
-using CombineFiles;
+using Lib;
 
-namespace FileCombiner {
+namespace CombineFiles {
     public partial class Form1 : Form {
         private string lastOutputFile;
 

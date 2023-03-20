@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Windows.Forms;
-using FileCombiner;
 
 namespace CombineFiles {
     internal static class Program {

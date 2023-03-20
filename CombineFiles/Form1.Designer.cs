@@ -1,4 +1,4 @@
-﻿namespace FileCombiner
+﻿namespace CombineFiles
 {
     partial class Form1
     {

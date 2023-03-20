@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 
-namespace CombineFiles {
+namespace Lib {
     public class FileSystemNode {
         public string FullPath { get; set; }
         public bool IsChecked { get; set; }

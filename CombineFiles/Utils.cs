@@ -1,4 +1,5 @@
 ﻿using System.Windows.Forms;
+using Lib;
 
 namespace CombineFiles {
     internal class Utils {

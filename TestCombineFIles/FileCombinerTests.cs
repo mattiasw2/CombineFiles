@@ -7,7 +7,7 @@ namespace TestCombineFIles;
 
 public class FileCombinerTests
 {
-    public int CountIncludedFiles(string combinedFileContent)
+    public static int CountIncludedFiles(string combinedFileContent)
     {
         var filePattern = new Regex(@"^// Combined from: .*$", RegexOptions.Multiline);
         return filePattern.Matches(combinedFileContent).Count;

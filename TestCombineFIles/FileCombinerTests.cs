@@ -15,6 +15,7 @@ public class FileCombinerTests {
     public void CombineSelectedFilesRecursive_CombinesCorrectNumberOfFiles() {
         // Arrange
         var mockFileSystem = new Mock<IFileSystem>();
+        Core core = new Core(mockFileSystem.Object);
 
         string file1Content = "File 1 content";
         string file2Content = "File 2 content";
@@ -35,7 +36,7 @@ public class FileCombinerTests {
 
             using (var outputStream = new MemoryStream()) {
                 // Act
-                Core.CombineSelectedFilesRecursive(rootNode, outputStream, mockFileSystem.Object);
+                core.CombineSelectedFilesRecursive(rootNode, outputStream);
 
                 // Assert
                 outputStream.Seek(0, SeekOrigin.Begin);

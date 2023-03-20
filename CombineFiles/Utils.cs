@@ -2,7 +2,7 @@
 using Lib;
 
 namespace CombineFiles {
-    internal class Utils {
+    internal static class Utils {
         public static FileSystemNode MapTreeNodeToFileSystemNode(TreeNode treeNode) {
             var fileSystemNode = new FileSystemNode(treeNode.FullPath, treeNode.Checked);
 

@@ -76,10 +76,14 @@ namespace CombineFiles {
                 }
             }
 
+            // Read the combined file content and set the clipboard text
+            string combinedFileContent = File.ReadAllText(targetFile);
+            Clipboard.SetText(combinedFileContent);
+
             lastOutputFile = targetFile;
             buttonCombineAgain.Enabled = true;
 
-            MessageBox.Show("Files combined successfully!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            MessageBox.Show("Files combined successfully and copied to the clipboard!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
 

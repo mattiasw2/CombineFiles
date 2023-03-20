@@ -29,9 +29,9 @@ public class FileCombinerTests {
             mockFileSystem.Setup(fs => fs.OpenRead("file2.cs")).Returns(file2Stream);
             mockFileSystem.Setup(fs => fs.OpenRead("file3.cs")).Returns(file3Stream);
 
-            var rootNode = new FileSystemNode("root", false);
+            var rootNode = new FileSystemNode("root");
             rootNode.Children.Add(new FileSystemNode("file1.cs", true));
-            rootNode.Children.Add(new FileSystemNode("file2.cs", false));
+            rootNode.Children.Add(new FileSystemNode("file2.cs"));
             rootNode.Children.Add(new FileSystemNode("file3.cs", true));
 
             using (var outputStream = new MemoryStream()) {

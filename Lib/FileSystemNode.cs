@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using System.IO;
-using System.Reflection.Emit;
 
 namespace Lib {
     public class FileSystemNode {
@@ -30,8 +29,7 @@ namespace Lib {
             return File.OpenRead(path);
         }
 
-        public StreamReader OpenStreamReader(string path)
-        {
+        public StreamReader OpenStreamReader(string path) {
             return new StreamReader(path);
         }
 

@@ -89,7 +89,7 @@ namespace Lib {
         {
             var tree = CSharpSyntaxTree.ParseText(content);
             var root = tree.GetCompilationUnitRoot();
-            var compilation = CSharpCompilation.Create("TempCompilation", new[] { tree }, new[] { MetadataReference.CreateFromFile(typeof(object).Assembly.Location) });
+            var compilation = CSharpCompilation.Create(null).AddSyntaxTrees(tree).AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location));
             var semanticModel = compilation.GetSemanticModel(tree);
 
             var fields = root.DescendantNodes().OfType<FieldDeclarationSyntax>();
@@ -171,13 +171,17 @@ namespace Lib {
 
             private SyntaxTrivia CreateCommentFromMethodCall(InvocationExpressionSyntax call)
             {
-                var ignoredTypes = new HashSet<string> { "ILogger", "String" };
-                var ignoredNamespaces = new HashSet<string> { "System.Diagnostics", "Microsoft.Extensions.Logging", "Log", "string", "Regex", "Convert", "Math", "int", "Guid" };
+                var ignoredTypes = new HashSet<string> { "ILogger", "String", "Log" };
+                var ignoredNamespaces = new HashSet<string> { "System.Diagnostics", "Microsoft.Extensions.Logging", "System" };
+                bool methodNameOnly = false;
 
                 string commentText;
                 var typeInfo = _semanticModel.GetTypeInfo(call.Expression);
                 var typeName = typeInfo.Type?.Name;
                 var namespaceName = typeInfo.Type?.ContainingNamespace?.ToString();
+                var methodName = methodNameOnly 
+                    ? call.Expression.ToString().Split('.').Last().Split('(').First()
+                    : call.Expression.ToString(); ;
 
                 if (typeName != null && ignoredTypes.Contains(typeName))
                 {
@@ -189,13 +193,22 @@ namespace Lib {
                     return SyntaxFactory.Comment("");
                 }
 
+                if (ignoredTypes.Contains(methodName))
+                {
+                    return SyntaxFactory.Comment("");
+                }
+
+                if (methodName.ToLower().Contains("log"))
+                {
+                    return SyntaxFactory.Comment("");
+                }
+
                 if (_keepArguments)
                 {
                     commentText = $"\n/* {call} */";
                 }
                 else
                 {
-                    var methodName = call.Expression.ToString();
                     commentText = $"\n// {methodName}(..)";
                 }
 
@@ -204,10 +217,12 @@ namespace Lib {
         }
 
 
-        private string RemoveEmptyLines(string content) {
-            var lines = content.Split(new[] { Environment.NewLine }, StringSplitOptions.None);
-            var nonEmptyLines = lines.Where(line => !string.IsNullOrEmpty(line.Trim())).ToArray();
-            return string.Join(Environment.NewLine, nonEmptyLines);
+        public static string RemoveEmptyLines(string content) {
+            content = content.Replace("\r\n", "\n");
+            content = content.Replace("\r", "");
+            var lines = content.Split(new[] { '\n'}, StringSplitOptions.None);
+            var nonEmptyLines = lines.Select(line => line.Trim()).Where(line => !string.IsNullOrEmpty(line.Trim())).ToArray();
+            return string.Join("\n", nonEmptyLines);
         }
 
         private class ExpressionSyntaxComparer : IEqualityComparer<InvocationExpressionSyntax>

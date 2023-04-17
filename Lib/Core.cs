@@ -89,6 +89,8 @@ namespace Lib {
         {
             var tree = CSharpSyntaxTree.ParseText(content);
             var root = tree.GetCompilationUnitRoot();
+            var compilation = CSharpCompilation.Create("TempCompilation", new[] { tree }, new[] { MetadataReference.CreateFromFile(typeof(object).Assembly.Location) });
+            var semanticModel = compilation.GetSemanticModel(tree);
 
             var fields = root.DescendantNodes().OfType<FieldDeclarationSyntax>();
             var properties = root.DescendantNodes().OfType<PropertyDeclarationSyntax>();
@@ -110,7 +112,7 @@ namespace Lib {
                 sb.AppendLine($"{propertyType} {propertyName}");
             }
 
-            var rewriter = new MethodBodyRemover();
+            var rewriter = new MethodBodyRemover(semanticModel);
             foreach (var methodDeclaration in methodDeclarations)
             {
                 var newMethodDeclaration = rewriter.Visit(methodDeclaration);
@@ -129,20 +131,16 @@ namespace Lib {
         }
 
 
-        private static string RemoveMethodBodies(string content) {
-            var tree = CSharpSyntaxTree.ParseText(content);
-            var root = tree.GetCompilationUnitRoot();
-
-            var rewriter = new MethodBodyRemover();
-            var newRoot = rewriter.Visit(root);
-
-            return newRoot.ToFullString();
-        }
-
-
         private class MethodBodyRemover : CSharpSyntaxRewriter {
             // Set this flag to true if you want to keep method call arguments, otherwise set it to false
             private readonly bool _keepArguments = false;
+
+            private readonly SemanticModel _semanticModel;
+
+            public MethodBodyRemover(SemanticModel semanticModel)
+            {
+                _semanticModel = semanticModel;
+            }
 
             public override SyntaxNode VisitMethodDeclaration(MethodDeclarationSyntax node) {
                 var bodyWithComments = ExtractMethodCallsAsComments(node.Body);
@@ -162,18 +160,13 @@ namespace Lib {
                 }
 
                 var methodCalls = body.DescendantNodes().OfType<InvocationExpressionSyntax>().ToList();
-                var comments = methodCalls.Select(call => CreateCommentFromMethodCall(call)).ToList();
+                var uniqueMethodCalls = new HashSet<InvocationExpressionSyntax>(methodCalls, new ExpressionSyntaxComparer());
+                var comments = uniqueMethodCalls.Select(call => CreateCommentFromMethodCall(call)).ToList();
 
-                var combinedStatements = new List<StatementSyntax>();
-                for (int i = 0; i < methodCalls.Count; i++)
-                {
-                    combinedStatements.Add(
-                        SyntaxFactory.ExpressionStatement(methodCalls[i])
-                            .WithTrailingTrivia(SyntaxFactory.CarriageReturnLineFeed)
-                            .WithLeadingTrivia(comments[i]));
-                }
+                var statementsWithLeadingTrivia = comments.Select(comment =>
+                    SyntaxFactory.EmptyStatement().WithLeadingTrivia(comment)).ToArray();
 
-                return SyntaxFactory.Block(combinedStatements);
+                return SyntaxFactory.Block(statementsWithLeadingTrivia);
             }
 
             private SyntaxTrivia CreateCommentFromMethodCall(InvocationExpressionSyntax call)
@@ -182,28 +175,28 @@ namespace Lib {
                 var ignoredNamespaces = new HashSet<string> { "System.Diagnostics", "Microsoft.Extensions.Logging", "Log", "string", "Regex", "Convert", "Math", "int", "Guid" };
 
                 string commentText;
-                var typeName = call.Expression.GetType().Name;
-                var namespaceName = call.Expression.ToString().Split('.')[0];
+                var typeInfo = _semanticModel.GetTypeInfo(call.Expression);
+                var typeName = typeInfo.Type?.Name;
+                var namespaceName = typeInfo.Type?.ContainingNamespace?.ToString();
 
-
-                if (ignoredTypes.Contains(typeName))
+                if (typeName != null && ignoredTypes.Contains(typeName))
                 {
                     return SyntaxFactory.Comment("");
                 }
 
-                if (ignoredNamespaces.Contains(namespaceName))
+                if (namespaceName != null && ignoredNamespaces.Contains(namespaceName))
                 {
                     return SyntaxFactory.Comment("");
                 }
 
                 if (_keepArguments)
                 {
-                    commentText = $"/* {call} */ ";
+                    commentText = $"\n/* {call} */";
                 }
                 else
                 {
                     var methodName = call.Expression.ToString();
-                    commentText = $"// {methodName}(..) ";
+                    commentText = $"\n// {methodName}(..)";
                 }
 
                 return SyntaxFactory.Comment(commentText);
@@ -216,5 +209,21 @@ namespace Lib {
             var nonEmptyLines = lines.Where(line => !string.IsNullOrEmpty(line.Trim())).ToArray();
             return string.Join(Environment.NewLine, nonEmptyLines);
         }
+
+        private class ExpressionSyntaxComparer : IEqualityComparer<InvocationExpressionSyntax>
+        {
+            public bool Equals(InvocationExpressionSyntax x, InvocationExpressionSyntax y)
+            {
+                if (x == null || y == null) return false;
+                return x.ToString() == y.ToString();
+            }
+
+            public int GetHashCode(InvocationExpressionSyntax obj)
+            {
+                if (obj == null) return 0;
+                return obj.ToString().GetHashCode();
+            }
+        }
+
     }
 }

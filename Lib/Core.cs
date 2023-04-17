@@ -1,13 +1,9 @@
 using System;
-using System.IO;
-using System.Text;
-using System.Text.RegularExpressions;
-
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -56,19 +52,15 @@ namespace Lib {
         }
 
 
-        public void CombineSelectedFilesRecursive(FileSystemNode node, Stream output)
-        {
-            if (node.IsChecked)
-            {
+        public void CombineSelectedFilesRecursive(FileSystemNode node, Stream output) {
+            if (node.IsChecked) {
                 string filePath = node.FullPath;
-                if (!fileSystem.DirectoryExists(filePath))
-                {
+                if (!fileSystem.DirectoryExists(filePath)) {
                     byte[] commentBytes = Encoding.UTF8.GetBytes($"// Combined from: {filePath}{Environment.NewLine}");
                     output.Write(commentBytes, 0, commentBytes.Length);
 
                     string content;
-                    using (StreamReader reader = new StreamReader(fileSystem.OpenRead(filePath), Encoding.UTF8))
-                    {
+                    using (StreamReader reader = new StreamReader(fileSystem.OpenRead(filePath), Encoding.UTF8)) {
                         content = reader.ReadToEnd();
                     }
 
@@ -81,22 +73,19 @@ namespace Lib {
                 }
             }
 
-            foreach (FileSystemNode childNode in node.Children)
-            {
+            foreach (FileSystemNode childNode in node.Children) {
                 CombineSelectedFilesRecursive(childNode, output);
             }
         }
 
-        private string ProcessContent(string content)
-        {
+        private string ProcessContent(string content) {
             content = RemoveComments(content);
             content = KeepMembers(content);
             content = RemoveEmptyLines(content);
             return content;
         }
 
-        private string KeepMembers(string content)
-        {
+        private string KeepMembers(string content) {
             var tree = CSharpSyntaxTree.ParseText(content);
             var root = tree.GetCompilationUnitRoot();
 
@@ -106,35 +95,27 @@ namespace Lib {
 
             var sb = new StringBuilder();
 
-            foreach (var field in fields)
-            {
+            foreach (var field in fields) {
                 var fieldType = field.Declaration.Type.ToString();
                 var fieldName = field.Declaration.Variables.First().Identifier.ToString();
                 sb.AppendLine($"{fieldType} {fieldName}");
             }
 
-            foreach (var property in properties)
-            {
+            foreach (var property in properties) {
                 var propertyType = property.Type.ToString();
                 var propertyName = property.Identifier.ToString();
                 sb.AppendLine($"{propertyType} {propertyName}");
             }
 
-            foreach (var methodDeclaration in methodDeclarations)
-            {
-                var methodPrototype = methodDeclaration
-                    .WithBody(null)
-                    .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken));
-                sb.AppendLine(methodPrototype.ToFullString());
+            foreach (var methodDeclaration in methodDeclarations) {
+                sb.AppendLine(RemoveMethodBodies(methodDeclaration.ToFullString()));
             }
 
             return sb.ToString();
         }
 
 
-
-        private string RemoveComments(string content)
-        {
+        private string RemoveComments(string content) {
             string linePattern = @"//.*?$";
             string blockPattern = @"/\*[\s\S]*?\*/";
             string pattern = $@"({linePattern}|{blockPattern})";
@@ -142,8 +123,7 @@ namespace Lib {
         }
 
 
-        private static string RemoveMethodBodies(string content)
-        {
+        private static string RemoveMethodBodies(string content) {
             var tree = CSharpSyntaxTree.ParseText(content);
             var root = tree.GetCompilationUnitRoot();
 
@@ -153,40 +133,23 @@ namespace Lib {
             return newRoot.ToFullString();
         }
 
-        //private class MethodBodyRemover : CSharpSyntaxRewriter
-        //{
-        //    public override SyntaxNode VisitMethodDeclaration(MethodDeclarationSyntax node)
-        //    {
-        //        return node.WithBody(SyntaxFactory.Block());
-        //    }
 
-        //    public override SyntaxNode VisitLocalFunctionStatement(LocalFunctionStatementSyntax node)
-        //    {
-        //        return node.WithBody(SyntaxFactory.Block());
-        //    }
-        //}
-
-        private class MethodBodyRemover : CSharpSyntaxRewriter
-        {
+        private class MethodBodyRemover : CSharpSyntaxRewriter {
             // Set this flag to true if you want to keep method call arguments, otherwise set it to false
             private readonly bool _keepArguments = true;
 
-            public override SyntaxNode VisitMethodDeclaration(MethodDeclarationSyntax node)
-            {
+            public override SyntaxNode VisitMethodDeclaration(MethodDeclarationSyntax node) {
                 var bodyWithComments = ExtractMethodCallsAsComments(node.Body);
                 return node.WithBody(bodyWithComments);
             }
 
-            public override SyntaxNode VisitLocalFunctionStatement(LocalFunctionStatementSyntax node)
-            {
+            public override SyntaxNode VisitLocalFunctionStatement(LocalFunctionStatementSyntax node) {
                 var bodyWithComments = ExtractMethodCallsAsComments(node.Body);
                 return node.WithBody(bodyWithComments);
             }
 
-            private BlockSyntax ExtractMethodCallsAsComments(BlockSyntax body)
-            {
-                if (body == null)
-                {
+            private BlockSyntax ExtractMethodCallsAsComments(BlockSyntax body) {
+                if (body == null) {
                     return SyntaxFactory.Block();
                 }
 
@@ -201,15 +164,31 @@ namespace Lib {
 
             private SyntaxTrivia CreateCommentFromMethodCall(InvocationExpressionSyntax call)
             {
+                var ignoredTypes = new HashSet<string> { "ILogger", "String" };
+                var ignoredNamespaces = new HashSet<string> { "System.Diagnostics", "Microsoft.Extensions.Logging" };
+
                 string commentText;
+                var typeName = call.Expression.GetType().Name;
+
+                if (ignoredTypes.Contains(typeName))
+                {
+                    return SyntaxFactory.Comment("");
+                }
+
+                var namespaceName = call.Expression.ToString().Split('.')[0];
+                if (ignoredNamespaces.Contains(namespaceName))
+                {
+                    return SyntaxFactory.Comment("");
+                }
+
                 if (_keepArguments)
                 {
-                    commentText = $"// {call}";
+                    commentText = $"\n// {call}";
                 }
                 else
                 {
                     var methodName = call.Expression.ToString();
-                    commentText = $"// {methodName}(..)";
+                    commentText = $"\n// {methodName}(..)";
                 }
 
                 return SyntaxFactory.Comment(commentText);
@@ -217,42 +196,10 @@ namespace Lib {
         }
 
 
-        private string RemoveEmptyLines(string content)
-        {
+        private string RemoveEmptyLines(string content) {
             var lines = content.Split(new[] { Environment.NewLine }, StringSplitOptions.None);
             var nonEmptyLines = lines.Where(line => !string.IsNullOrEmpty(line.Trim())).ToArray();
             return string.Join(Environment.NewLine, nonEmptyLines);
         }
-
-
-        private string KeepFieldInformation(string content)
-        {
-            var tree = CSharpSyntaxTree.ParseText(content);
-            var root = tree.GetCompilationUnitRoot();
-
-            var fields = root.DescendantNodes().OfType<FieldDeclarationSyntax>();
-            var properties = root.DescendantNodes().OfType<PropertyDeclarationSyntax>();
-
-            var sb = new StringBuilder();
-
-            foreach (var field in fields)
-            {
-                var fieldType = field.Declaration.Type.ToString();
-                var fieldName = field.Declaration.Variables.First().Identifier.ToString();
-                sb.AppendLine($"{fieldType} {fieldName}");
-            }
-
-            foreach (var property in properties)
-            {
-                var propertyType = property.Type.ToString();
-                var propertyName = property.Identifier.ToString();
-                sb.AppendLine($"{propertyType} {propertyName}");
-            }
-
-            return sb.ToString();
-        }
-
-
-
     }
 }

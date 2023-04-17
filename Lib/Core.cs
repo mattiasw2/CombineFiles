@@ -90,29 +90,47 @@ namespace Lib {
         private string ProcessContent(string content)
         {
             content = RemoveComments(content);
-            content = RemoveMethodBodies(content);
+            content = KeepMembers(content);
             content = RemoveEmptyLines(content);
-            content = KeepFieldInformation(content);
-            content = GetMethodPrototypes(content);
             return content;
         }
 
-        private string GetMethodPrototypes(string content)
+        private string KeepMembers(string content)
         {
             var tree = CSharpSyntaxTree.ParseText(content);
             var root = tree.GetCompilationUnitRoot();
 
+            var fields = root.DescendantNodes().OfType<FieldDeclarationSyntax>();
+            var properties = root.DescendantNodes().OfType<PropertyDeclarationSyntax>();
             var methodDeclarations = root.DescendantNodes().OfType<MethodDeclarationSyntax>();
 
             var sb = new StringBuilder();
 
+            foreach (var field in fields)
+            {
+                var fieldType = field.Declaration.Type.ToString();
+                var fieldName = field.Declaration.Variables.First().Identifier.ToString();
+                sb.AppendLine($"{fieldType} {fieldName}");
+            }
+
+            foreach (var property in properties)
+            {
+                var propertyType = property.Type.ToString();
+                var propertyName = property.Identifier.ToString();
+                sb.AppendLine($"{propertyType} {propertyName}");
+            }
+
             foreach (var methodDeclaration in methodDeclarations)
             {
-                sb.AppendLine(methodDeclaration.ToFullString());
+                var methodPrototype = methodDeclaration
+                    .WithBody(null)
+                    .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken));
+                sb.AppendLine(methodPrototype.ToFullString());
             }
 
             return sb.ToString();
         }
+
 
 
         private string RemoveComments(string content)
@@ -152,9 +170,10 @@ namespace Lib {
         private string RemoveEmptyLines(string content)
         {
             var lines = content.Split(new[] { Environment.NewLine }, StringSplitOptions.None);
-            var nonEmptyLines = lines.Where(line => !string.IsNullOrWhiteSpace(line)).ToArray();
+            var nonEmptyLines = lines.Where(line => !string.IsNullOrEmpty(line.Trim())).ToArray();
             return string.Join(Environment.NewLine, nonEmptyLines);
         }
+
 
         private string KeepFieldInformation(string content)
         {

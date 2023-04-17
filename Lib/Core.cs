@@ -85,7 +85,8 @@ namespace Lib {
             return content;
         }
 
-        private string KeepMembers(string content) {
+        private string KeepMembers(string content)
+        {
             var tree = CSharpSyntaxTree.ParseText(content);
             var root = tree.GetCompilationUnitRoot();
 
@@ -95,20 +96,25 @@ namespace Lib {
 
             var sb = new StringBuilder();
 
-            foreach (var field in fields) {
+            foreach (var field in fields)
+            {
                 var fieldType = field.Declaration.Type.ToString();
                 var fieldName = field.Declaration.Variables.First().Identifier.ToString();
                 sb.AppendLine($"{fieldType} {fieldName}");
             }
 
-            foreach (var property in properties) {
+            foreach (var property in properties)
+            {
                 var propertyType = property.Type.ToString();
                 var propertyName = property.Identifier.ToString();
                 sb.AppendLine($"{propertyType} {propertyName}");
             }
 
-            foreach (var methodDeclaration in methodDeclarations) {
-                sb.AppendLine(RemoveMethodBodies(methodDeclaration.ToFullString()));
+            var rewriter = new MethodBodyRemover();
+            foreach (var methodDeclaration in methodDeclarations)
+            {
+                var newMethodDeclaration = rewriter.Visit(methodDeclaration);
+                sb.AppendLine(newMethodDeclaration.ToFullString());
             }
 
             return sb.ToString();
@@ -148,18 +154,26 @@ namespace Lib {
                 return node.WithBody(bodyWithComments);
             }
 
-            private BlockSyntax ExtractMethodCallsAsComments(BlockSyntax body) {
-                if (body == null) {
+            private BlockSyntax ExtractMethodCallsAsComments(BlockSyntax body)
+            {
+                if (body == null)
+                {
                     return SyntaxFactory.Block();
                 }
 
                 var methodCalls = body.DescendantNodes().OfType<InvocationExpressionSyntax>().ToList();
                 var comments = methodCalls.Select(call => CreateCommentFromMethodCall(call)).ToList();
 
-                var statementsWithLeadingTrivia = comments.Select(comment =>
-                    SyntaxFactory.EmptyStatement().WithLeadingTrivia(comment)).ToArray();
+                var combinedStatements = new List<StatementSyntax>();
+                for (int i = 0; i < methodCalls.Count; i++)
+                {
+                    combinedStatements.Add(
+                        SyntaxFactory.ExpressionStatement(methodCalls[i])
+                            .WithTrailingTrivia(SyntaxFactory.CarriageReturnLineFeed)
+                            .WithLeadingTrivia(comments[i]));
+                }
 
-                return SyntaxFactory.Block(statementsWithLeadingTrivia);
+                return SyntaxFactory.Block(combinedStatements);
             }
 
             private SyntaxTrivia CreateCommentFromMethodCall(InvocationExpressionSyntax call)
@@ -184,12 +198,12 @@ namespace Lib {
 
                 if (_keepArguments)
                 {
-                    commentText = $"\n/* {call} */";
+                    commentText = $"/* {call} */ ";
                 }
                 else
                 {
                     var methodName = call.Expression.ToString();
-                    commentText = $"\n// {methodName}(..)";
+                    commentText = $"// {methodName}(..) ";
                 }
 
                 return SyntaxFactory.Comment(commentText);

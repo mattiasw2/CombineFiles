@@ -165,7 +165,7 @@ namespace Lib {
             private SyntaxTrivia CreateCommentFromMethodCall(InvocationExpressionSyntax call)
             {
                 var ignoredTypes = new HashSet<string> { "ILogger", "String" };
-                var ignoredNamespaces = new HashSet<string> { "System.Diagnostics", "Microsoft.Extensions.Logging", "Log", "string", "Regex" };
+                var ignoredNamespaces = new HashSet<string> { "System.Diagnostics", "Microsoft.Extensions.Logging", "Log", "string", "Regex", "Convert", "Math", "int", "Guid" };
 
                 string commentText;
                 var typeName = call.Expression.GetType().Name;

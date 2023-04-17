@@ -221,7 +221,7 @@ namespace Lib {
             content = content.Replace("\r\n", "\n");
             content = content.Replace("\r", "");
             var lines = content.Split(new[] { '\n'}, StringSplitOptions.None);
-            var nonEmptyLines = lines.Select(line => line.Trim()).Where(line => !string.IsNullOrEmpty(line.Trim())).ToArray();
+            var nonEmptyLines = lines.Select(line => line.Trim()).Where(line => !string.IsNullOrEmpty(line)).ToArray();
             return string.Join("\n", nonEmptyLines);
         }
 

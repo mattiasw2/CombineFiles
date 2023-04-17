@@ -136,7 +136,7 @@ namespace Lib {
 
         private class MethodBodyRemover : CSharpSyntaxRewriter {
             // Set this flag to true if you want to keep method call arguments, otherwise set it to false
-            private readonly bool _keepArguments = true;
+            private readonly bool _keepArguments = false;
 
             public override SyntaxNode VisitMethodDeclaration(MethodDeclarationSyntax node) {
                 var bodyWithComments = ExtractMethodCallsAsComments(node.Body);
@@ -165,17 +165,18 @@ namespace Lib {
             private SyntaxTrivia CreateCommentFromMethodCall(InvocationExpressionSyntax call)
             {
                 var ignoredTypes = new HashSet<string> { "ILogger", "String" };
-                var ignoredNamespaces = new HashSet<string> { "System.Diagnostics", "Microsoft.Extensions.Logging" };
+                var ignoredNamespaces = new HashSet<string> { "System.Diagnostics", "Microsoft.Extensions.Logging", "Log", "string", "Regex" };
 
                 string commentText;
                 var typeName = call.Expression.GetType().Name;
+                var namespaceName = call.Expression.ToString().Split('.')[0];
+
 
                 if (ignoredTypes.Contains(typeName))
                 {
                     return SyntaxFactory.Comment("");
                 }
 
-                var namespaceName = call.Expression.ToString().Split('.')[0];
                 if (ignoredNamespaces.Contains(namespaceName))
                 {
                     return SyntaxFactory.Comment("");
@@ -183,7 +184,7 @@ namespace Lib {
 
                 if (_keepArguments)
                 {
-                    commentText = $"\n// {call}";
+                    commentText = $"\n/* {call} */";
                 }
                 else
                 {

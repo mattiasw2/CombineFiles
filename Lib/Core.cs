@@ -3,6 +3,15 @@ using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
 
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+
 namespace Lib {
     public class Core {
         private readonly IFileSystem fileSystem;
@@ -47,29 +56,134 @@ namespace Lib {
         }
 
 
-        public void CombineSelectedFilesRecursive(FileSystemNode node, Stream output) {
-            if (node.IsChecked) {
+        public void CombineSelectedFilesRecursive(FileSystemNode node, Stream output)
+        {
+            if (node.IsChecked)
+            {
                 string filePath = node.FullPath;
-                if (!fileSystem.DirectoryExists(filePath)) {
+                if (!fileSystem.DirectoryExists(filePath))
+                {
                     byte[] commentBytes = Encoding.UTF8.GetBytes($"// Combined from: {filePath}{Environment.NewLine}");
                     output.Write(commentBytes, 0, commentBytes.Length);
 
-                    byte[] buffer = new byte[4096];
-                    using (Stream input = fileSystem.OpenRead(filePath)) {
-                        int bytesRead;
-                        while ((bytesRead = input.Read(buffer, 0, buffer.Length)) > 0) {
-                            output.Write(buffer, 0, bytesRead);
-                        }
+                    string content;
+                    using (StreamReader reader = new StreamReader(fileSystem.OpenRead(filePath), Encoding.UTF8))
+                    {
+                        content = reader.ReadToEnd();
                     }
+
+                    content = ProcessContent(content);
+                    byte[] contentBytes = Encoding.UTF8.GetBytes(content);
+                    output.Write(contentBytes, 0, contentBytes.Length);
 
                     byte[] newLineBytes = Encoding.UTF8.GetBytes(Environment.NewLine);
                     output.Write(newLineBytes, 0, newLineBytes.Length);
                 }
             }
 
-            foreach (FileSystemNode childNode in node.Children) {
+            foreach (FileSystemNode childNode in node.Children)
+            {
                 CombineSelectedFilesRecursive(childNode, output);
             }
         }
+
+        private string ProcessContent(string content)
+        {
+            content = RemoveComments(content);
+            // content = RemoveMethodBodies(content);
+            content = RemoveEmptyLines(content);
+            content = KeepFieldInformation(content);
+            content = GetMethodPrototypes(content);
+            return content;
+        }
+
+        private string GetMethodPrototypes(string content)
+        {
+            var tree = CSharpSyntaxTree.ParseText(content);
+            var root = tree.GetCompilationUnitRoot();
+
+            var methodDeclarations = root.DescendantNodes().OfType<MethodDeclarationSyntax>();
+
+            var sb = new StringBuilder();
+
+            foreach (var methodDeclaration in methodDeclarations)
+            {
+                sb.AppendLine(methodDeclaration.ToFullString());
+            }
+
+            return sb.ToString();
+        }
+
+
+        private string RemoveComments(string content)
+        {
+            string linePattern = @"//.*?$";
+            string blockPattern = @"/\*[\s\S]*?\*/";
+            string pattern = $@"({linePattern}|{blockPattern})";
+            return Regex.Replace(content, pattern, "", RegexOptions.Multiline);
+        }
+
+
+        private static string RemoveMethodBodies(string content)
+        {
+            var tree = CSharpSyntaxTree.ParseText(content);
+            var root = tree.GetCompilationUnitRoot();
+
+            var rewriter = new MethodBodyRemover();
+            var newRoot = rewriter.Visit(root);
+
+            return newRoot.ToFullString();
+        }
+
+        private class MethodBodyRemover : CSharpSyntaxRewriter
+        {
+            public override SyntaxNode VisitMethodDeclaration(MethodDeclarationSyntax node)
+            {
+                return node.WithBody(SyntaxFactory.Block());
+            }
+
+            public override SyntaxNode VisitLocalFunctionStatement(LocalFunctionStatementSyntax node)
+            {
+                return node.WithBody(SyntaxFactory.Block());
+            }
+        }
+
+
+        private string RemoveEmptyLines(string content)
+        {
+            var lines = content.Split(new[] { Environment.NewLine }, StringSplitOptions.None);
+            var nonEmptyLines = lines.Where(line => !string.IsNullOrWhiteSpace(line)).ToArray();
+            return string.Join(Environment.NewLine, nonEmptyLines);
+        }
+
+        private string KeepFieldInformation(string content)
+        {
+            var tree = CSharpSyntaxTree.ParseText(content);
+            var root = tree.GetCompilationUnitRoot();
+
+            var fields = root.DescendantNodes().OfType<FieldDeclarationSyntax>();
+            var properties = root.DescendantNodes().OfType<PropertyDeclarationSyntax>();
+
+            var sb = new StringBuilder();
+
+            foreach (var field in fields)
+            {
+                var fieldType = field.Declaration.Type.ToString();
+                var fieldName = field.Declaration.Variables.First().Identifier.ToString();
+                sb.AppendLine($"{fieldType} {fieldName}");
+            }
+
+            foreach (var property in properties)
+            {
+                var propertyType = property.Type.ToString();
+                var propertyName = property.Identifier.ToString();
+                sb.AppendLine($"{propertyType} {propertyName}");
+            }
+
+            return sb.ToString();
+        }
+
+
+
     }
 }

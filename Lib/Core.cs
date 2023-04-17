@@ -153,16 +153,66 @@ namespace Lib {
             return newRoot.ToFullString();
         }
 
+        //private class MethodBodyRemover : CSharpSyntaxRewriter
+        //{
+        //    public override SyntaxNode VisitMethodDeclaration(MethodDeclarationSyntax node)
+        //    {
+        //        return node.WithBody(SyntaxFactory.Block());
+        //    }
+
+        //    public override SyntaxNode VisitLocalFunctionStatement(LocalFunctionStatementSyntax node)
+        //    {
+        //        return node.WithBody(SyntaxFactory.Block());
+        //    }
+        //}
+
         private class MethodBodyRemover : CSharpSyntaxRewriter
         {
+            // Set this flag to true if you want to keep method call arguments, otherwise set it to false
+            private readonly bool _keepArguments = true;
+
             public override SyntaxNode VisitMethodDeclaration(MethodDeclarationSyntax node)
             {
-                return node.WithBody(SyntaxFactory.Block());
+                var bodyWithComments = ExtractMethodCallsAsComments(node.Body);
+                return node.WithBody(bodyWithComments);
             }
 
             public override SyntaxNode VisitLocalFunctionStatement(LocalFunctionStatementSyntax node)
             {
-                return node.WithBody(SyntaxFactory.Block());
+                var bodyWithComments = ExtractMethodCallsAsComments(node.Body);
+                return node.WithBody(bodyWithComments);
+            }
+
+            private BlockSyntax ExtractMethodCallsAsComments(BlockSyntax body)
+            {
+                if (body == null)
+                {
+                    return SyntaxFactory.Block();
+                }
+
+                var methodCalls = body.DescendantNodes().OfType<InvocationExpressionSyntax>().ToList();
+                var comments = methodCalls.Select(call => CreateCommentFromMethodCall(call)).ToList();
+
+                var statementsWithLeadingTrivia = comments.Select(comment =>
+                    SyntaxFactory.EmptyStatement().WithLeadingTrivia(comment)).ToArray();
+
+                return SyntaxFactory.Block(statementsWithLeadingTrivia);
+            }
+
+            private SyntaxTrivia CreateCommentFromMethodCall(InvocationExpressionSyntax call)
+            {
+                string commentText;
+                if (_keepArguments)
+                {
+                    commentText = $"// {call}";
+                }
+                else
+                {
+                    var methodName = call.Expression.ToString();
+                    commentText = $"// {methodName}(..)";
+                }
+
+                return SyntaxFactory.Comment(commentText);
             }
         }
 

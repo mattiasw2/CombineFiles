@@ -90,7 +90,7 @@ namespace Lib {
         private string ProcessContent(string content)
         {
             content = RemoveComments(content);
-            // content = RemoveMethodBodies(content);
+            content = RemoveMethodBodies(content);
             content = RemoveEmptyLines(content);
             content = KeepFieldInformation(content);
             content = GetMethodPrototypes(content);

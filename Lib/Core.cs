@@ -82,8 +82,16 @@ namespace Lib {
             content = RemoveComments(content);
             content = KeepMembers(content);
             content = RemoveEmptyLines(content);
+            content = RemoveDirectives(content);
             return content;
         }
+
+        private string RemoveDirectives(string content) {
+            var lines = content.Split(new[] { '\n' }, StringSplitOptions.None);
+            var filteredLines = lines.Where(line => !line.Trim().StartsWith("#")).ToArray();
+            return string.Join("\n", filteredLines);
+        }
+
 
         private string KeepMembers(string content) {
             var tree = CSharpSyntaxTree.ParseText(content);

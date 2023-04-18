@@ -85,8 +85,7 @@ namespace Lib {
             return content;
         }
 
-        private string KeepMembers(string content)
-        {
+        private string KeepMembers(string content) {
             var tree = CSharpSyntaxTree.ParseText(content);
             var root = tree.GetCompilationUnitRoot();
             var compilation = CSharpCompilation.Create(null).AddSyntaxTrees(tree).AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location));
@@ -94,46 +93,91 @@ namespace Lib {
 
             var classDeclarations = root.DescendantNodes().OfType<ClassDeclarationSyntax>();
             var recordDeclarations = root.DescendantNodes().OfType<RecordDeclarationSyntax>();
-            var fields = root.DescendantNodes().OfType<FieldDeclarationSyntax>();
-            var properties = root.DescendantNodes().OfType<PropertyDeclarationSyntax>();
-            var methodDeclarations = root.DescendantNodes().OfType<MethodDeclarationSyntax>();
+            var interfaceDeclarations = root.DescendantNodes().OfType<InterfaceDeclarationSyntax>();
+            var structDeclarations = root.DescendantNodes().OfType<StructDeclarationSyntax>();
+            var enumDeclarations = root.DescendantNodes().OfType<EnumDeclarationSyntax>();
 
             var sb = new StringBuilder();
 
-            foreach (var classDeclaration in classDeclarations)
-            {
+            foreach (var classDeclaration in classDeclarations) {
                 var className = classDeclaration.Identifier.ToString();
-                sb.AppendLine($"class {className}");
+                sb.AppendLine($"class {className} {{");
+
+                AppendMembers(classDeclaration, sb, semanticModel);
+
+                sb.AppendLine("}");
             }
 
-            foreach (var recordDeclaration in recordDeclarations)
-            {
+            foreach (var recordDeclaration in recordDeclarations) {
                 var recordName = recordDeclaration.Identifier.ToString();
-                sb.AppendLine($"record {recordName}");
+                sb.AppendLine($"record {recordName} {{");
+
+                AppendMembers(recordDeclaration, sb, semanticModel);
+
+                sb.AppendLine("}");
             }
 
-            foreach (var field in fields)
-            {
-                var fieldType = field.Declaration.Type.ToString();
-                var fieldName = field.Declaration.Variables.First().Identifier.ToString();
-                sb.AppendLine($"{fieldType} {fieldName}");
+            foreach (var interfaceDeclaration in interfaceDeclarations) {
+                var interfaceName = interfaceDeclaration.Identifier.ToString();
+                sb.AppendLine($"interface {interfaceName} {{");
+
+                AppendMembers(interfaceDeclaration, sb, semanticModel);
+
+                sb.AppendLine("}");
             }
 
-            foreach (var property in properties)
-            {
-                var propertyType = property.Type.ToString();
-                var propertyName = property.Identifier.ToString();
-                sb.AppendLine($"{propertyType} {propertyName}");
+            foreach (var structDeclaration in structDeclarations) {
+                var structName = structDeclaration.Identifier.ToString();
+                sb.AppendLine($"struct {structName} {{");
+
+                AppendMembers(structDeclaration, sb, semanticModel);
+
+                sb.AppendLine("}");
             }
 
-            var rewriter = new MethodBodyRemover(semanticModel);
-            foreach (var methodDeclaration in methodDeclarations)
-            {
-                var newMethodDeclaration = rewriter.Visit(methodDeclaration);
-                sb.AppendLine(newMethodDeclaration.ToFullString());
+            foreach (var enumDeclaration in enumDeclarations) {
+                var enumName = enumDeclaration.Identifier.ToString();
+                sb.AppendLine($"enum {enumName} {{");
+
+                AppendEnumMembers(enumDeclaration, sb);
+
+                sb.AppendLine("}");
             }
 
             return sb.ToString();
+        }
+
+        private void AppendEnumMembers(EnumDeclarationSyntax enumDeclaration, StringBuilder sb) {
+            var enumMembers = enumDeclaration.DescendantNodes().OfType<EnumMemberDeclarationSyntax>();
+
+            foreach (var enumMember in enumMembers) {
+                sb.AppendLine($"{enumMember.Identifier},");
+            }
+        }
+
+
+        private void AppendMembers(SyntaxNode node, StringBuilder sb, SemanticModel semanticModel) {
+            var fields = node.DescendantNodes().OfType<FieldDeclarationSyntax>();
+            var properties = node.DescendantNodes().OfType<PropertyDeclarationSyntax>();
+            var methodDeclarations = node.DescendantNodes().OfType<MethodDeclarationSyntax>();
+
+            foreach (var field in fields) {
+                var fieldType = field.Declaration.Type.ToString();
+                var fieldName = field.Declaration.Variables.First().Identifier.ToString();
+                sb.AppendLine($"{fieldType} {fieldName};");
+            }
+
+            foreach (var property in properties) {
+                var propertyType = property.Type.ToString();
+                var propertyName = property.Identifier.ToString();
+                sb.AppendLine($"{propertyType} {propertyName} {{ get; set; }}");
+            }
+
+            var rewriter = new MethodBodyRemover(semanticModel);
+            foreach (var methodDeclaration in methodDeclarations) {
+                var newMethodDeclaration = rewriter.Visit(methodDeclaration);
+                sb.AppendLine(newMethodDeclaration.ToFullString());
+            }
         }
 
 

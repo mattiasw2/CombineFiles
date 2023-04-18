@@ -1,13 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Lib;
-using Xunit;
+﻿using Lib;
 
-namespace TestCombineFIles
-{
+namespace TestCombineFIles {
     public class TestRemoveEmptyLines {
         private string test = @"    void Update(T entity, bool noSaveChanges = false){};
     
@@ -84,12 +77,14 @@ Regex regexGetFieldSelect
 // _getField.GetFieldText(..);
 // match.Groups[1].ToString(..);
 // regexGetFieldSelect.Match(..);
-// _getField.GetFieldSelect(..);";
+// _getField.GetFieldSelect(..);
+
+";
 
         [Fact]
         public void TestRemoveEmptyLines1() {
             var res = Core.RemoveEmptyLines(test);
-            Assert.False(res.Split('\n').Length == 14);
+            Assert.Equal(56, res.Split('\n').Length);
         }
     }
 }

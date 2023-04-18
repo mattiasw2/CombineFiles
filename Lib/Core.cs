@@ -85,8 +85,7 @@ namespace Lib {
             return content;
         }
 
-        private string KeepMembers(string content)
-        {
+        private string KeepMembers(string content) {
             var tree = CSharpSyntaxTree.ParseText(content);
             var root = tree.GetCompilationUnitRoot();
             var compilation = CSharpCompilation.Create(null).AddSyntaxTrees(tree).AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location));
@@ -98,23 +97,20 @@ namespace Lib {
 
             var sb = new StringBuilder();
 
-            foreach (var field in fields)
-            {
+            foreach (var field in fields) {
                 var fieldType = field.Declaration.Type.ToString();
                 var fieldName = field.Declaration.Variables.First().Identifier.ToString();
                 sb.AppendLine($"{fieldType} {fieldName}");
             }
 
-            foreach (var property in properties)
-            {
+            foreach (var property in properties) {
                 var propertyType = property.Type.ToString();
                 var propertyName = property.Identifier.ToString();
                 sb.AppendLine($"{propertyType} {propertyName}");
             }
 
             var rewriter = new MethodBodyRemover(semanticModel);
-            foreach (var methodDeclaration in methodDeclarations)
-            {
+            foreach (var methodDeclaration in methodDeclarations) {
                 var newMethodDeclaration = rewriter.Visit(methodDeclaration);
                 sb.AppendLine(newMethodDeclaration.ToFullString());
             }
@@ -137,8 +133,7 @@ namespace Lib {
 
             private readonly SemanticModel _semanticModel;
 
-            public MethodBodyRemover(SemanticModel semanticModel)
-            {
+            public MethodBodyRemover(SemanticModel semanticModel) {
                 _semanticModel = semanticModel;
             }
 
@@ -152,10 +147,8 @@ namespace Lib {
                 return node.WithBody(bodyWithComments);
             }
 
-            private BlockSyntax ExtractMethodCallsAsComments(BlockSyntax body)
-            {
-                if (body == null)
-                {
+            private BlockSyntax ExtractMethodCallsAsComments(BlockSyntax body) {
+                if (body == null) {
                     return SyntaxFactory.Block();
                 }
 
@@ -169,8 +162,7 @@ namespace Lib {
                 return SyntaxFactory.Block(statementsWithLeadingTrivia);
             }
 
-            private SyntaxTrivia CreateCommentFromMethodCall(InvocationExpressionSyntax call)
-            {
+            private SyntaxTrivia CreateCommentFromMethodCall(InvocationExpressionSyntax call) {
                 var ignoredTypes = new HashSet<string> { "ILogger", "String", "Log" };
                 var ignoredNamespaces = new HashSet<string> { "System.Diagnostics", "Microsoft.Extensions.Logging", "System" };
                 bool methodNameOnly = false;
@@ -179,36 +171,31 @@ namespace Lib {
                 var typeInfo = _semanticModel.GetTypeInfo(call.Expression);
                 var typeName = typeInfo.Type?.Name;
                 var namespaceName = typeInfo.Type?.ContainingNamespace?.ToString();
-                var methodName = methodNameOnly 
+                var methodName = methodNameOnly
                     ? call.Expression.ToString().Split('.').Last().Split('(').First()
-                    : call.Expression.ToString(); ;
+                    : call.Expression.ToString();
+                ;
 
-                if (typeName != null && ignoredTypes.Contains(typeName))
-                {
+                if (typeName != null && ignoredTypes.Contains(typeName)) {
                     return SyntaxFactory.Comment("");
                 }
 
-                if (namespaceName != null && ignoredNamespaces.Contains(namespaceName))
-                {
+                if (namespaceName != null && ignoredNamespaces.Contains(namespaceName)) {
                     return SyntaxFactory.Comment("");
                 }
 
-                if (ignoredTypes.Contains(methodName))
-                {
+                if (ignoredTypes.Contains(methodName)) {
                     return SyntaxFactory.Comment("");
                 }
 
-                if (methodName.ToLower().Contains("log"))
-                {
+                if (methodName.ToLower().Contains("log")) {
                     return SyntaxFactory.Comment("");
                 }
 
-                if (_keepArguments)
-                {
+                if (_keepArguments) {
                     commentText = $"\n/* {call} */";
                 }
-                else
-                {
+                else {
                     commentText = $"\n// {methodName}(..)";
                 }
 
@@ -220,25 +207,21 @@ namespace Lib {
         public static string RemoveEmptyLines(string content) {
             content = content.Replace("\r\n", "\n");
             content = content.Replace("\r", "");
-            var lines = content.Split(new[] { '\n'}, StringSplitOptions.None);
+            var lines = content.Split(new[] { '\n' }, StringSplitOptions.None);
             var nonEmptyLines = lines.Select(line => line.Trim()).Where(line => !string.IsNullOrEmpty(line)).ToArray();
             return string.Join("\n", nonEmptyLines);
         }
 
-        private class ExpressionSyntaxComparer : IEqualityComparer<InvocationExpressionSyntax>
-        {
-            public bool Equals(InvocationExpressionSyntax x, InvocationExpressionSyntax y)
-            {
+        private class ExpressionSyntaxComparer : IEqualityComparer<InvocationExpressionSyntax> {
+            public bool Equals(InvocationExpressionSyntax x, InvocationExpressionSyntax y) {
                 if (x == null || y == null) return false;
                 return x.ToString() == y.ToString();
             }
 
-            public int GetHashCode(InvocationExpressionSyntax obj)
-            {
+            public int GetHashCode(InvocationExpressionSyntax obj) {
                 if (obj == null) return 0;
                 return obj.ToString().GetHashCode();
             }
         }
-
     }
 }

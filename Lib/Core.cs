@@ -85,32 +85,50 @@ namespace Lib {
             return content;
         }
 
-        private string KeepMembers(string content) {
+        private string KeepMembers(string content)
+        {
             var tree = CSharpSyntaxTree.ParseText(content);
             var root = tree.GetCompilationUnitRoot();
             var compilation = CSharpCompilation.Create(null).AddSyntaxTrees(tree).AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location));
             var semanticModel = compilation.GetSemanticModel(tree);
 
+            var classDeclarations = root.DescendantNodes().OfType<ClassDeclarationSyntax>();
+            var recordDeclarations = root.DescendantNodes().OfType<RecordDeclarationSyntax>();
             var fields = root.DescendantNodes().OfType<FieldDeclarationSyntax>();
             var properties = root.DescendantNodes().OfType<PropertyDeclarationSyntax>();
             var methodDeclarations = root.DescendantNodes().OfType<MethodDeclarationSyntax>();
 
             var sb = new StringBuilder();
 
-            foreach (var field in fields) {
+            foreach (var classDeclaration in classDeclarations)
+            {
+                var className = classDeclaration.Identifier.ToString();
+                sb.AppendLine($"class {className}");
+            }
+
+            foreach (var recordDeclaration in recordDeclarations)
+            {
+                var recordName = recordDeclaration.Identifier.ToString();
+                sb.AppendLine($"record {recordName}");
+            }
+
+            foreach (var field in fields)
+            {
                 var fieldType = field.Declaration.Type.ToString();
                 var fieldName = field.Declaration.Variables.First().Identifier.ToString();
                 sb.AppendLine($"{fieldType} {fieldName}");
             }
 
-            foreach (var property in properties) {
+            foreach (var property in properties)
+            {
                 var propertyType = property.Type.ToString();
                 var propertyName = property.Identifier.ToString();
                 sb.AppendLine($"{propertyType} {propertyName}");
             }
 
             var rewriter = new MethodBodyRemover(semanticModel);
-            foreach (var methodDeclaration in methodDeclarations) {
+            foreach (var methodDeclaration in methodDeclarations)
+            {
                 var newMethodDeclaration = rewriter.Visit(methodDeclaration);
                 sb.AppendLine(newMethodDeclaration.ToFullString());
             }
